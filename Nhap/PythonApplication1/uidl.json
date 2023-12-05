@@ -11,23 +11,50 @@
       "CC": "",
       "BCC": "",
       "Body": [],
-      "has_attachment": false
-    }
-  ],
-  "ahihi.ngoc@gmail.com": [
-    {
-      "STT": 0,
-      "Code": "Example",
-      "Status": "Unread",
-      "From": "",
-      "Subject": "",
-      "Date": "",
-      "To": "",
-      "CC": "",
-      "BCC": "",
-      "Body": [],
       "has_attachment": false,
       "Attachments": []
+    },
+    {
+      "STT": 1,
+      "Code": "20231205195735932.msg",
+      "Status": "Unread",
+      "From": "Kelvin <ahihi.gioi@gmail.com>",
+      "Subject": "TEST1",
+      "Date": "",
+      "To": "ahihi.gioi@gmail.com",
+      "CC": "",
+      "BCC": "",
+      "Body": "TEST1",
+      "has_attachment": false,
+      "Attachments": ""
+    },
+    {
+      "STT": 2,
+      "Code": "20231205195805794.msg",
+      "Status": "Unread",
+      "From": "Kelvin <ahihi.gioi@gmail.com>",
+      "Subject": "TEST2",
+      "Date": "",
+      "To": "ahihi.gioi@gmail.com",
+      "CC": "",
+      "BCC": "",
+      "Body": "TEST2",
+      "has_attachment": false,
+      "Attachments": ""
+    },
+    {
+      "STT": 3,
+      "Code": "20231205203917713.msg",
+      "Status": "Unread",
+      "From": "Kelvin <ahihi.gioi@gmail.com>",
+      "Subject": "TEST3",
+      "Date": "",
+      "To": "ahihi.gioi@gmail.com",
+      "CC": "",
+      "BCC": "",
+      "Body": "TEST3 co file",
+      "has_attachment": true,
+      "Attachments": ""
     }
   ]
 }

@@ -7,6 +7,8 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "client", "client\client.pyp
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "PythonApplication1", "PythonApplication1\PythonApplication1.pyproj", "{4776003C-8699-45BC-8D7C-FC474BF3E4FA}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "KTU", "KTU\KTU.pyproj", "{808B2874-73DC-4097-B9B0-B68F07FB9014}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,6 +19,8 @@ Global
 		{80F1B424-7805-48E1-B7DA-9AE65EC04241}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4776003C-8699-45BC-8D7C-FC474BF3E4FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4776003C-8699-45BC-8D7C-FC474BF3E4FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{808B2874-73DC-4097-B9B0-B68F07FB9014}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{808B2874-73DC-4097-B9B0-B68F07FB9014}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

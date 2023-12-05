@@ -30,12 +30,13 @@ def main():
     username = input("Enter username: ")
     email_address = input("Enter email address: ")
     user_info = {'Username': username + " <" + email_address + ">",
-                 'Password': input("Enter password: "),
-                 'MailServer': '127.0.0.1',
-                 'SMTP': 2225,
-                 'POP3': 3335,
-                 'Auto': 10
-                 }
+                'Password': input("Enter password: "),
+                'MailServer': '127.0.0.1',
+                'SMTP': 2225,
+                'POP3': 3335,
+                'Auto': 10
+                }
+    
       
 # Kiểm tra tài khoảng người dùng
     check_account(user_info)
@@ -53,8 +54,8 @@ def main():
     # Số 1 có nghĩa là nó trả về chuỗi khớp đầu tiên
     # Nếu thay bằng 0 thì nó sẽ trả về toàn bộ chuỗi
     # Nếu để trống thì nó sẽ tự thay 0 nếu không tìm thấy và 1 nếu tìm thấy
-    email = match.group(1)
-    folder_isExist(email)
+    gmail = match.group(1)
+    folder_isExist(gmail)
     
 # Bắt đầu giao diện người dùng
     while True:
@@ -105,8 +106,7 @@ def main():
                 # Nhận thông tin lời chào từ server
                 welcome_message = pop3_socket.recv(1024).decode()
 
-                # receive_mail(pop3_socket, user_info) # Trong lúc mà có người gửi thì vẫn nhận tiếp được
-                watch_mail()
+                receive_mail(pop3_socket, user_info) # Trong lúc mà có người gửi thì vẫn nhận tiếp được
                 
                 # Đóng kết nối socket
                 pop3_socket.send(b'QUIT\r\n')
@@ -224,14 +224,14 @@ def folder_isExist(username):
                     "To": "",
                     "CC": "",
                     "BCC": "",
-                    "Body": "",
+                    "Body": [],
                     "has_attachment": False,
-                    "Attachments": ""
+                    "Attachments": []
                     }
                 ]
             }
             json.dump(uidl_content, f, indent=2)
-    else:
+    elif "uidl.json" in list_file_folder:
         with open('uidl.json', 'r') as f:
             data = json.load(f)
         if username not in data:
@@ -280,6 +280,9 @@ def folder_isExist(username):
             ]
             }
             json.dump(filter_content, f, indent=2)
+    else:
+        with open('filter.json', 'r') as f:
+            filter_content = json.load(f)
 
     os.chdir(username) # Di chuyển đến thư mục username
     # Lấy danh sách các tệp và thư mục trong đường dẫn hiện tại
@@ -302,11 +305,11 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
         # Gửi lệnh EHLO để bắt đầu
         message = 'EHLO [{}] \r\n'.format('127.0.0.1').encode(FORMAT)
         smtp_socket.send(message)
-        # Tách email từ username
+        # Tách gmail từ username
         match = re.search(r'<([^>]+)>', user_info['Username'])
-        email = match.group(1)
+        gmail = match.group(1)
         # Gửi lệnh MAIL FROM
-        mail_from = 'MAIL FROM:<{}> \r\n'.format(email).encode(FORMAT)
+        mail_from = 'MAIL FROM:<{}> \r\n'.format(gmail).encode(FORMAT)
         smtp_socket.send(mail_from)
 
         to_addresses = []
@@ -453,11 +456,11 @@ def receive_mail(pop3_socket, user_info):
     pop3_socket.send(b'CAPA\r\n')
     pop3_socket.recv(1024).decode()
 
-    # Tách email từ username
+    # Tách gmail từ username
     match = re.search(r'<([^>]+)>', user_info['Username'])
-    email_address = match.group(1)
+    gmail = match.group(1)
     # SEND USER
-    pop3_socket.send(f'USER {email_address}\r\n'.encode())
+    pop3_socket.send(f'USER {gmail}\r\n'.encode())
     pop3_socket.recv(1024).decode()
 
     # SEND PASS
@@ -487,36 +490,36 @@ def receive_mail(pop3_socket, user_info):
     # .
     response = pop3_socket.recv(int(1e10)).decode()
     
-    download_mail(pop3_socket, response, email_address)
+    download_mail(pop3_socket, response, gmail)
     
-def download_mail(pop3_socket, response, email_address):            
+def download_mail(pop3_socket, response, gmail):            
     # Lấy các dòng phản hồi UIDL từ server
+    uidl_lines = []
     uidl_lines = response.split('\r\n')
     
     # Đọc các dòng UIDL trừ dòng đầu (+OK) và dòng cuối (.)
     for uidl_line in uidl_lines[1:-2]:
         with open('uidl.json', 'r') as f:
             data = json.load(f)
-            for email_info in data[str(email_address)]:
-                if str(email_info["Code"]) == str(uidl_line[2:]):
+            for gmail in data[gmail]:
+                if gmail['Code'] in uidl_line:
                     break
-                else:
-                    pop3_socket.send('RETR {}\r\n'.format(uidl_line[0]).encode())  
-                    response = pop3_socket.recv(int(1e10)).decode()
-                    retr_lines = response.split('\r\n')
-                    email_data = parse_email(retr_lines, uidl_line)
-                    save_mail_filtered(email_data, response)
-                    with open('uidl.json', 'r') as f:
-                        data = json.load(f)
-                        data[str(email_address)].append(email_data)
-                    with open('uidl.json', 'w') as f:
-                        json.dump(data, f, indent=2)
-                    break
+                pop3_socket.send('RETR {}\r\n'.format(uidl_line[0]).encode())  
+                response = pop3_socket.recv(int(1e10)).decode()
+                retr_lines = response.split('\r\n')
+
+                uidl_data = parse_email(retr_lines, uidl_line)
+                
+                with open('uidl.json', 'r') as f:
+                    data = json.load(f)
+                    data[gmail].append(uidl_data)
+                with open('uidl.json', 'w') as f:
+                    json.dump(data, f, indent=2)
 
 def parse_email(retr_lines, uidl_line):
     email = {
-        "STT": int(uidl_line[0]),
-        "Code": str(uidl_line[2:]),
+        "STT": uidl_line[0],
+        "Code": uidl_line[2:],
         "Status": "Unread",
         "From": "",
         "Subject": "",
@@ -524,17 +527,16 @@ def parse_email(retr_lines, uidl_line):
         "To": "",
         "CC": "",
         "BCC": "",
-        "Body": "",
+        "Body": [],
         "has_attachment": False,
-        "Attachments": ""
+        "Attachments": []
     }
     
     count_emptyLine = 0
 
-    for retr_line in retr_lines:        
+    for retr_line in retr_lines[1:-2]:        
         if retr_line.startswith("From"):
             email["From"] = retr_line.split(":")[1].strip()
-        
         elif retr_line.startswith("Subject"):
             email["Subject"] = retr_line.split(":")[1].strip()
         elif retr_line.startswith("Date"):
@@ -553,21 +555,22 @@ def parse_email(retr_lines, uidl_line):
                 email["has_attachment"] = True
                 
         # Kiểm tra mail có nội dung hay không
-        elif retr_line == '':
+        elif retr_line == "":
             count_emptyLine += 1
-        if count_emptyLine == 2 and retr_line != '':
-            email["Body"] += retr_line
-        # elif count_emptyLine == 4 and retr_line != '':
-        #     email["Attachments"] += retr_line                
+            if count_emptyLine == 2:
+                email["Body"] += retr_line
+            elif count_emptyLine == 4:
+                email["Attachments"] += retr_line            
+
+        
+        # Lấy nội dung mail        
+        # elif not retr_line.startswith("-"):
+        #     email["body"] += retr_line + "\n"
     
     return email
 
-def save_mail_filtered(email_data, raw_email_data):
-    pass
-
 def watch_mail():#pop3_socket, response):
     while True:
-        print('------------------------------------------------------------------')
         print("This is folder list in your mailbox: ")
         print("1. Inbox")
         print("2. Project")
@@ -580,7 +583,6 @@ def watch_mail():#pop3_socket, response):
             return
         elif choice == '1':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
-            print('------------------------------------------------------------------')
             print("This is mail list in your Inbox folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Inbox folder
 
@@ -609,7 +611,6 @@ def watch_mail():#pop3_socket, response):
         
         elif choice == '2':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
-            print('------------------------------------------------------------------')
             print("This is mail list in your Project folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Project folder
 
@@ -638,7 +639,6 @@ def watch_mail():#pop3_socket, response):
                     
         elif choice == '3':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
-            print('------------------------------------------------------------------')
             print("This is mail list in your Important folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Important folder
 
@@ -667,7 +667,6 @@ def watch_mail():#pop3_socket, response):
                     
         elif choice == '4':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
-            print('------------------------------------------------------------------')
             print("This is mail list in your Work folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Work folder
 
@@ -696,7 +695,6 @@ def watch_mail():#pop3_socket, response):
                     
         elif choice == '5':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
-            print('------------------------------------------------------------------')
             print("This is mail list in your Spam folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Spam folder
 
@@ -730,6 +728,19 @@ def watch_mail():#pop3_socket, response):
 
   
 ### ------------------------------------------------------x---    
+def save_uidl(uidl):
+    path = 'uidl_list.json'
+    data = {'uidl_list': []}
+    data["uidl_list"].append(uidl)
+
+    with open (path, 'w') as f:
+        json.dump(data, f , indent = 2)
+
+def load_uidl():
+    path = 'uidl_list.json'
+    with open (path, 'r') as f:
+        return json.load(f)
+
 def load_filters():
     program_address = os.getcwd()
     filter_file_path = os.path.join(program_address, 'Filter.json')
