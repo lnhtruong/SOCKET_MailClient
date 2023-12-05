@@ -1,0 +1,28 @@
+{
+  "account": [
+    {
+      "Username": "Kelvin <truong@gmail.com>",
+      "Password": "",
+      "MailServer": "127.0.0.1",
+      "SMTP": 2225,
+      "POP3": 3335,
+      "Auto": 10
+    },
+    {
+      "Username": "Kelvin <ahihi.gioi@gmail.com>",
+      "Password": "",
+      "MailServer": "127.0.0.1",
+      "SMTP": 2225,
+      "POP3": 3335,
+      "Auto": 10
+    },
+    {
+      "Username": "Kelvin <ahihi.ngoc@gmail.com>",
+      "Password": "",
+      "MailServer": "127.0.0.1",
+      "SMTP": 2225,
+      "POP3": 3335,
+      "Auto": 10
+    }
+  ]
+}

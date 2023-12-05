@@ -1,0 +1,33 @@
+{
+  "ahihi.gioi@gmail.com": [
+    {
+      "STT": 0,
+      "Code": "Example",
+      "Status": "Unread",
+      "From": "",
+      "Subject": "",
+      "Date": "",
+      "To": "",
+      "CC": "",
+      "BCC": "",
+      "Body": [],
+      "has_attachment": false
+    }
+  ],
+  "ahihi.ngoc@gmail.com": [
+    {
+      "STT": 0,
+      "Code": "Example",
+      "Status": "Unread",
+      "From": "",
+      "Subject": "",
+      "Date": "",
+      "To": "",
+      "CC": "",
+      "BCC": "",
+      "Body": [],
+      "has_attachment": false,
+      "Attachments": []
+    }
+  ]
+}
