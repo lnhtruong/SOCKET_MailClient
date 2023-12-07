@@ -1,6 +1,6 @@
 ﻿import socket
 # Mã hóa và giải mã dữ liệu nhị phân theo định dạng base64
-import base64
+# import base64
 # Cung cấp tương tác với hệ diều hành (Dùng trong thao tác tệp tin)
 import os
 # Cung cấp phương thức thao tác file json
@@ -18,14 +18,18 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 # Chứa các hàm để mã hóa và giải mã nội dung MIME của các loại khác nhau
 from email import encoders
-
-FORMAT = 'UTF-8' 
+# Nhận biết ngôn ngữ
+# import langid
+# Lấy dữ liệu ngày giờ và múi giờ
+import datetime
+import uuid
+FORMAT = 'utf-8'
 
 filter_content = []
 
 
 # HÀM MAIN
-def main(): 
+def main():
 # Khởi tạo và nhập thông tin người dùng
     username = input("Enter username: ")
     email_address = input("Enter email address: ")
@@ -36,26 +40,26 @@ def main():
                  'POP3': 3335,
                  'Auto': 10
                  }
-      
+
 # Kiểm tra tài khoảng người dùng
     check_account(user_info)
     if user_info['Password'] == '0':
         return
-    
+
     HOST = user_info['MailServer']
     PORT_SMTP = user_info['SMTP']
     PORT_POP3 = user_info['POP3']
-    
-# Kiểm tra và tạo thư mục cho người dùng
+
+    # Kiểm tra và tạo thư mục cho người dùng
     # r là tiền tố để xử lý ký tự đặc biệt mà không xóa chúng
     # r'<([^>]+)>' có nghĩa là đọc chuỗi trong dấu < và >
     match = re.search(r'<([^>]+)>', user_info['Username'])
     # Số 1 có nghĩa là nó trả về chuỗi khớp đầu tiên
     # Nếu thay bằng 0 thì nó sẽ trả về toàn bộ chuỗi
     # Nếu để trống thì nó sẽ tự thay 0 nếu không tìm thấy và 1 nếu tìm thấy
-    email = match.group(1)
-    folder_isExist(email)
-    
+    email_address = match.group(1)
+    folder_isExist(email_address)
+
 # Bắt đầu giao diện người dùng
     while True:
         print("Menu:")
@@ -63,18 +67,18 @@ def main():
         print("2. View a list of received emails")
         print("3. Exit")
         choice = input("Enter your choice: ")
-        
+
     # GỬI MAIL
         if choice == '1':
             # Mở kết nối socket
             smtp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             smtp_socket.connect((HOST, PORT_SMTP))
-            
+
             # Dùng khối try để gửi mail
             try:
                 # Nhận thông tin lời chào từ server
                 welcome_message = smtp_socket.recv(1024).decode()
-                
+
                 print("Đây là thông tin soạn mail: (nếu không điền vui lòng nhấn enter để bỏ qua)")
                 # Kiểu gửi TO và CC
                 to = input('TO: ')
@@ -99,7 +103,7 @@ def main():
             # Mở kết nối socket
             pop3_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             pop3_socket.connect((HOST, PORT_POP3))
-            
+
             # Dùng khối try để nhận mail
             try:
                 # Nhận thông tin lời chào từ server
@@ -107,7 +111,7 @@ def main():
 
                 # receive_mail(pop3_socket, user_info) # Trong lúc mà có người gửi thì vẫn nhận tiếp được
                 watch_mail()
-                
+
                 # Đóng kết nối socket
                 pop3_socket.send(b'QUIT\r\n')
                 pop3_socket.close()
@@ -300,7 +304,7 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
     try:
         msg = MIMEMultipart()
         # Gửi lệnh EHLO để bắt đầu
-        message = 'EHLO [{}] \r\n'.format('127.0.0.1').encode(FORMAT)
+        message = 'EHLO [{}] \r\n'.format(str(user_info['MailServer'])).encode(FORMAT)
         smtp_socket.send(message)
         # Tách email từ username
         match = re.search(r'<([^>]+)>', user_info['Username'])
@@ -333,7 +337,24 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
 
         # Lệnh DATA
         smtp_socket.sendall(b'DATA\r\n')
-        if bcc.strip() and not to.strip() and not cc.strip():   
+        unique_id = str(uuid.uuid4())
+        msg['Message-ID'] = f"<{unique_id}@gmail.com>"
+        now = datetime.datetime.now(datetime.timezone.utc).astimezone()
+        # Định dạng lại ngày tháng
+        # %a: viết tắt tên ngày trong tuần
+        # %d: ngày trong tháng dưới dạng 01,02,...
+        # %b: tên tháng viết tắt
+        # %Y: tên năm viết đầy đủ
+        # %H: giờ viết dưới dạng 01,02,...
+        # %M: phút viết dưới dạng 01,02,...
+        # %S: giây viết dưới dạng 01,02,...
+        # %z  Mốc giờ dưới dạng +HHMM hoặc -HHMM
+        formatted_date = now.strftime("%a, %d %b %Y %H:%M:%S %z")
+        # Assign to the 'Date' field in your message
+        msg['Date'] = formatted_date
+        # language, confidence = langid.classify(content)
+        # msg['Content-Language'] = language
+        if bcc.strip() and not to.strip() and not cc.strip():
             msg['To'] = 'undisclosed-recipients: ;'
         else:
             if to.strip():
@@ -389,7 +410,7 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
 
     finally:
         pass
-
+    
 def send_file(path, msg):
     file_name = basename(path)
     # Mở chế độ đọc nhị phân 'rb'
@@ -497,21 +518,22 @@ def download_mail(pop3_socket, response, email_address):
     for uidl_line in uidl_lines[1:-2]:
         with open('uidl.json', 'r') as f:
             data = json.load(f)
+            check = False
             for email_info in data[str(email_address)]:
                 if str(email_info["Code"]) == str(uidl_line[2:]):
+                    check = True
                     break
-                else:
-                    pop3_socket.send('RETR {}\r\n'.format(uidl_line[0]).encode())  
-                    response = pop3_socket.recv(int(1e10)).decode()
-                    retr_lines = response.split('\r\n')
-                    email_data = parse_email(retr_lines, uidl_line)
-                    save_mail_filtered(email_data, response)
-                    with open('uidl.json', 'r') as f:
-                        data = json.load(f)
-                        data[str(email_address)].append(email_data)
-                    with open('uidl.json', 'w') as f:
-                        json.dump(data, f, indent=2)
-                    break
+            if check == False:
+                pop3_socket.send('RETR {}\r\n'.format(uidl_line[0]).encode())  
+                response = pop3_socket.recv(int(1e10)).decode()
+                retr_lines = response.split('\r\n')
+                email_data = parse_email(retr_lines, uidl_line)
+                save_mail_filtered(email_data, response)
+                with open('uidl.json', 'r') as f:
+                    data = json.load(f)
+                    data[str(email_address)].append(email_data)
+                with open('uidl.json', 'w') as f:
+                    json.dump(data, f, indent=2)
 
 def parse_email(retr_lines, uidl_line):
     email = {
@@ -580,146 +602,171 @@ def watch_mail():#pop3_socket, response):
             return
         elif choice == '1':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
+
             print('------------------------------------------------------------------')
             print("This is mail list in your Inbox folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Inbox folder
 
             print("Enter to exit, enter 0 to back.")
             while True:
+                print('------------------------------------------------------------------')
                 mail_choice = input("Enter number of mail you want to watch: ")
                 if mail_choice == '':
                     return
                 elif mail_choice == '0':
                     break
                 else:
+                    print('------------------------------------------------------------------')
                     print("This is mail content: ")
                     ### Hàm này sẽ in ra nội dung mail
 
-                    ### Hàm này sẽ cho biết mail này có mail không
+                    ### Hàm này sẽ cho biết mail này có file không
 
-                    ## Nếu có file
+                    ## Nếu có file thì hỏi có muốn lưu file không
                     save_choice = input("This mail has attached file, Do you want to save this mail? (1. Yes, 2. No): ")
+                    # Nếu có file và muốn lưu
                     if save_choice == '1':
                         path_attached_file = input("Enter the path you want to save: ")
-                        ### Hàm này sẽ lưu mail vào thư mục tương ứng
+                        ### Hàm này sẽ lưu file vào thư mục tương ứng
 
                         print("Mail saved!")
+                    # Nếu có file nhưng không muốn lưu
                     else:
                         continue
         
         elif choice == '2':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
+
             print('------------------------------------------------------------------')
             print("This is mail list in your Project folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Project folder
 
             print("Enter to exit, enter 0 to back.")
             while True:
+                print('------------------------------------------------------------------')
                 mail_choice = input("Enter number of mail you want to watch: ")
                 if mail_choice == '':
                     return
                 elif mail_choice == '0':
                     break
                 else:
+                    print('------------------------------------------------------------------')
                     print("This is mail content: ")
                     ### Hàm này sẽ in ra nội dung mail
 
-                    ### Hàm này sẽ cho biết mail này có mail không
+                    ### Hàm này sẽ cho biết mail này có file không
 
-                    ## Nếu có file
+                    ## Nếu có file thì hỏi có muốn lưu file không
                     save_choice = input("This mail has attached file, Do you want to save this mail? (1. Yes, 2. No): ")
+                    # Nếu có file và muốn lưu
                     if save_choice == '1':
                         path_attached_file = input("Enter the path you want to save: ")
-                        ### Hàm này sẽ lưu mail vào thư mục tương ứng
+                        ### Hàm này sẽ lưu file vào thư mục tương ứng
 
                         print("Mail saved!")
+                    # Nếu có file nhưng không muốn lưu
                     else:
                         continue
                     
         elif choice == '3':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
+
             print('------------------------------------------------------------------')
             print("This is mail list in your Important folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Important folder
 
             print("Enter to exit, enter 0 to back.")
             while True:
+                print('------------------------------------------------------------------')
                 mail_choice = input("Enter number of mail you want to watch: ")
                 if mail_choice == '':
                     return
                 elif mail_choice == '0':
                     break
                 else:
+                    print('------------------------------------------------------------------')
                     print("This is mail content: ")
                     ### Hàm này sẽ in ra nội dung mail
 
-                    ### Hàm này sẽ cho biết mail này có mail không
+                    ### Hàm này sẽ cho biết mail này có file không
 
-                    ## Nếu có file
+                    ## Nếu có file thì hỏi có muốn lưu file không
                     save_choice = input("This mail has attached file, Do you want to save this mail? (1. Yes, 2. No): ")
+                    # Nếu có file và muốn lưu
                     if save_choice == '1':
                         path_attached_file = input("Enter the path you want to save: ")
-                        ### Hàm này sẽ lưu mail vào thư mục tương ứng
+                        ### Hàm này sẽ lưu file vào thư mục tương ứng
 
                         print("Mail saved!")
+                    # Nếu có file nhưng không muốn lưu
                     else:
                         continue
                     
         elif choice == '4':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
+
             print('------------------------------------------------------------------')
             print("This is mail list in your Work folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Work folder
 
             print("Enter to exit, enter 0 to back.")
             while True:
+                print('------------------------------------------------------------------')
                 mail_choice = input("Enter number of mail you want to watch: ")
                 if mail_choice == '':
                     return
                 elif mail_choice == '0':
                     break
                 else:
+                    print('------------------------------------------------------------------')
                     print("This is mail content: ")
                     ### Hàm này sẽ in ra nội dung mail
 
-                    ### Hàm này sẽ cho biết mail này có mail không
+                    ### Hàm này sẽ cho biết mail này có file không
 
-                    ## Nếu có file
+                    ## Nếu có file thì hỏi có muốn lưu file không
                     save_choice = input("This mail has attached file, Do you want to save this mail? (1. Yes, 2. No): ")
+                    # Nếu có file và muốn lưu
                     if save_choice == '1':
                         path_attached_file = input("Enter the path you want to save: ")
-                        ### Hàm này sẽ lưu mail vào thư mục tương ứng
+                        ### Hàm này sẽ lưu file vào thư mục tương ứng
 
                         print("Mail saved!")
+                    # Nếu có file nhưng không muốn lưu
                     else:
                         continue
                     
         elif choice == '5':
             ### BỔ SUNG HÀM CHECK XEM CÓ MAIL KHÔNG, NẾU KHÔNG THÌ THÔNG BÁO KHÔNG CÓ MAIL
+
             print('------------------------------------------------------------------')
             print("This is mail list in your Spam folder: ")
             ### Hàm này sẽ in ra danh sách mail trong Spam folder
 
             print("Enter to exit, enter 0 to back.")
             while True:
+                print('------------------------------------------------------------------')
                 mail_choice = input("Enter number of mail you want to watch: ")
                 if mail_choice == '':
                     return
                 elif mail_choice == '0':
                     break
                 else:
+                    print('------------------------------------------------------------------')
                     print("This is mail content: ")
                     ### Hàm này sẽ in ra nội dung mail
 
-                    ### Hàm này sẽ cho biết mail này có mail không
+                    ### Hàm này sẽ cho biết mail này có file không
 
-                    ## Nếu có file
+                    ## Nếu có file thì hỏi có muốn lưu file không
                     save_choice = input("This mail has attached file, Do you want to save this mail? (1. Yes, 2. No): ")
+                    # Nếu có file và muốn lưu
                     if save_choice == '1':
                         path_attached_file = input("Enter the path you want to save: ")
-                        ### Hàm này sẽ lưu mail vào thư mục tương ứng
+                        ### Hàm này sẽ lưu file vào thư mục tương ứng
 
                         print("Mail saved!")
+                    # Nếu có file nhưng không muốn lưu
                     else:
                         continue
                  
