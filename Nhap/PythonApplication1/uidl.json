@@ -2,59 +2,107 @@
   "ahihi.gioi@gmail.com": [
     {
       "STT": 0,
-      "Code": "Example",
+      "msg": "Example",
       "Status": "Unread",
+      "Capacity": 0,
       "From": "",
       "Subject": "",
       "Date": "",
-      "To": "",
-      "CC": "",
-      "BCC": "",
-      "Body": [],
+      "To": [],
+      "CC": [],
+      "Body": "",
       "has_attachment": false,
-      "Attachments": []
+      "Num_File": 0
     },
     {
       "STT": 1,
-      "Code": "20231205195735932.msg",
+      "msg": "20231205195735932.msg",
       "Status": "Unread",
+      "Capacity": 362,
       "From": "Kelvin <ahihi.gioi@gmail.com>",
       "Subject": "TEST1",
       "Date": "",
-      "To": "ahihi.gioi@gmail.com",
-      "CC": "",
-      "BCC": "",
+      "To": [
+        "ahihi.gioi@gmail.com"
+      ],
+      "CC": [],
       "Body": "TEST1",
       "has_attachment": false,
-      "Attachments": ""
+      "Num_File": 0
     },
     {
       "STT": 2,
-      "Code": "20231205195805794.msg",
+      "msg": "20231205195805794.msg",
       "Status": "Unread",
-      "From": "Kelvin <ahihi.gioi@gmail.com>",
-      "Subject": "TEST2",
+      "Capacity": 362,
+      "From": "",
+      "Subject": "",
       "Date": "",
-      "To": "ahihi.gioi@gmail.com",
-      "CC": "",
-      "BCC": "",
-      "Body": "TEST2",
+      "To": [],
+      "CC": [],
+      "Body": "",
       "has_attachment": false,
-      "Attachments": ""
+      "Num_File": 0
     },
     {
       "STT": 3,
-      "Code": "20231205203917713.msg",
+      "msg": "20231205203917713.msg",
       "Status": "Unread",
+      "Capacity": 17107,
+      "From": "Kelvin <ahihi.gioi@gmail.com>",
+      "Subject": "TEST2",
+      "Date": "",
+      "To": [
+        "ahihi.gioi@gmail.com"
+      ],
+      "CC": [],
+      "Body": "TEST2",
+      "has_attachment": false,
+      "Num_File": 0
+    },
+    {
+      "STT": 4,
+      "msg": "20231208095556489.msg",
+      "Status": "Unread",
+      "Capacity": 394,
       "From": "Kelvin <ahihi.gioi@gmail.com>",
       "Subject": "TEST3",
       "Date": "",
-      "To": "ahihi.gioi@gmail.com",
-      "CC": "",
-      "BCC": "",
+      "To": [
+        "ahihi.gioi@gmail.com"
+      ],
+      "CC": [],
       "Body": "TEST3 co file",
+      "has_attachment": false,
+      "Num_File": 0
+    },
+    {
+      "STT": 5,
+      "msg": "20231208121755149.msg",
+      "Status": "Unread",
+      "Capacity": 379,
+      "From": "",
+      "Subject": "",
+      "Date": "",
+      "To": [],
+      "CC": [],
+      "Body": "",
       "has_attachment": true,
-      "Attachments": ""
+      "Num_File": 1
+    },
+    {
+      "STT": 6,
+      "msg": "20231209101325222.msg",
+      "Status": "Unread",
+      "Capacity": 451,
+      "From": "",
+      "Subject": "",
+      "Date": "",
+      "To": [],
+      "CC": [],
+      "Body": "",
+      "has_attachment": false,
+      "Num_File": 0
     }
   ]
 }

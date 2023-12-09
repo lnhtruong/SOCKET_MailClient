@@ -1,6 +1,6 @@
 ﻿import socket
 # Mã hóa và giải mã dữ liệu nhị phân theo định dạng base64
-# import base64
+import base64
 # Cung cấp tương tác với hệ diều hành (Dùng trong thao tác tệp tin)
 import os
 # Cung cấp phương thức thao tác file json
@@ -23,34 +23,33 @@ from email import encoders
 # Lấy dữ liệu ngày giờ và múi giờ
 import datetime
 import uuid
+import threading
+import time
+
 FORMAT = 'utf-8'
-
-filter_content = []
-
+exit_flag = False
 
 # HÀM MAIN
-def main():
+def main(): 
 # Khởi tạo và nhập thông tin người dùng
-    username = input("Enter username: ")
-    email_address = input("Enter email address: ")
+    username = "Kelvin" #input("Enter username: ")
+    email_address = "ahihi.gioi@gmail.com" #input("Enter email address: ")
     user_info = {'Username': username + " <" + email_address + ">",
                  'Password': input("Enter password: "),
                  'MailServer': '127.0.0.1',
                  'SMTP': 2225,
                  'POP3': 3335,
-                 'Auto': 10
+                 'AutoLoad': 10
                  }
-
+      
 # Kiểm tra tài khoảng người dùng
     check_account(user_info)
     if user_info['Password'] == '0':
         return
-
-    HOST = user_info['MailServer']
-    PORT_SMTP = user_info['SMTP']
-    PORT_POP3 = user_info['POP3']
-
-    # Kiểm tra và tạo thư mục cho người dùng
+    
+    server_info = get_server_info(user_info)
+    
+# Kiểm tra và tạo thư mục cho người dùng
     # r là tiền tố để xử lý ký tự đặc biệt mà không xóa chúng
     # r'<([^>]+)>' có nghĩa là đọc chuỗi trong dấu < và >
     match = re.search(r'<([^>]+)>', user_info['Username'])
@@ -59,23 +58,23 @@ def main():
     # Nếu để trống thì nó sẽ tự thay 0 nếu không tìm thấy và 1 nếu tìm thấy
     email_address = match.group(1)
     folder_isExist(email_address)
-
+       
 # Bắt đầu giao diện người dùng
     while True:
         print("Menu:")
         print("1. Send mail")
         print("2. View a list of received emails")
-        print("3. Exit")
+        print("3. Log out")
+        print("4. Exit")
         choice = input("Enter your choice: ")
-
+        
     # GỬI MAIL
         if choice == '1':
-            # Mở kết nối socket
-            smtp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            smtp_socket.connect((HOST, PORT_SMTP))
-
             # Dùng khối try để gửi mail
             try:
+                # Mở kết nối socket
+                smtp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                smtp_socket.connect((server_info["MailServer"], int(server_info["SMTP"])))
                 # Nhận thông tin lời chào từ server
                 welcome_message = smtp_socket.recv(1024).decode()
 
@@ -87,30 +86,61 @@ def main():
                 # Nội dung mail
                 subject = input("Subject: ")
                 content = input("Content: ")
-                send_mail(smtp_socket, user_info, to, subject, content, cc, bcc)
+                attached_files = []  # Danh sách các tệp đính kèm
+                # Phần nhập attach file
+                choice_attach = input("Do you want to attach files? (1. Yes, 2. No): ")
+                if choice_attach == '1':
+                    MAX_SIZE = 3 * 1024 * 1024
+                    remain_size = MAX_SIZE
+                    num = int(input("Number of files: "))
+
+                    for i in range(num):
+                        while True:
+                            path = input(f"Enter path for file {i + 1}: ")
+                            try:
+                                file_size = os.path.getsize(path)
+                                with open(path, 'rb') as file:
+                                    pass
+
+                                if file_size > remain_size:
+                                    print(f"Attached file exceeds remaining maximum size. "
+                                          f"Current size: {file_size} bytes, Remaining maximum allowed size: {remain_size} bytes")
+                                    print("Please try again.")
+                                else:
+                                    attached_files.append(path)  # Thêm đường dẫn tệp vào danh sách đính kèm
+                                    remain_size -= file_size
+                                    break
+
+                            except FileNotFoundError:
+                                print(f"File not found: {path}. Please enter a valid file path.")
+                            except IOError as e:
+                                print(f"Error opening file {path}: {e}")
+                            except Exception as e:
+                                print(f"An unexpected error occurred: {e}")
+
+                # Gọi hàm send_mail với danh sách tệp đính kèm
+                send_mail(smtp_socket, user_info, to, subject, content, cc, bcc, attached_files)
                 print("SEND SUCCESSFULLY!")
                 print('------------------------------------------------------------------')
             # Nếu khối try có bất kỳ ngoại lệ nào thì sẽ chạy khối except
             # Thông tin lỗi sẽ lưu vào biến e
             except Exception as e:
-                smtp_socket.close() # Đóng kết nối socket để tránh rò rỉ kết nối
-                print(f"Error: {e}") # Xuất thông tin lỗi lên màn hình
+                smtp_socket.close()  # Đóng kết nối socket để tránh rò rỉ kết nối
+                print(f"Error: {e}")  # Xuất thông tin lỗi lên màn hình
                 print("Disconnected from SERVER!")
                 return
 
     # XEM MAIL
         elif choice == '2':
-            # Mở kết nối socket
-            pop3_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            pop3_socket.connect((HOST, PORT_POP3))
-
-            # Dùng khối try để nhận mail
             try:
+                # Mở kết nối socket
+                pop3_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                pop3_socket.connect((server_info["MailServer"], server_info["POP3"]))
                 # Nhận thông tin lời chào từ server
                 welcome_message = pop3_socket.recv(1024).decode()
 
-                # receive_mail(pop3_socket, user_info) # Trong lúc mà có người gửi thì vẫn nhận tiếp được
-                watch_mail()
+                receive_mail(pop3_socket, user_info) # Trong lúc mà có người gửi thì vẫn nhận tiếp được
+                # watch_mail()
 
                 # Đóng kết nối socket
                 pop3_socket.send(b'QUIT\r\n')
@@ -122,10 +152,15 @@ def main():
                 pop3_socket.close() # Đóng kết nối socket để tránh rò rỉ kết nối
                 print(f"Error: {e}") # Xuất thông tin lỗi lên màn hình
                 print("Disconnected from SERVER!")
-                return
+                return    
+
+    # ĐĂNG XUẤT
+        elif choice == '3':
+            main()
+            return
 
     # THOÁT
-        elif choice == '3':
+        elif choice == '4':
             print("Exiting program...")
             return
 
@@ -214,49 +249,32 @@ def folder_isExist(username):
     if username not in list_file_folder:
         os.makedirs(username) # Tạo thư mục
         
-    # Tạo file uidl.json cho chương trình nếu chưa có
-    if "uidl.json" not in list_file_folder:
-        with open('uidl.json', 'w') as f:
-            uidl_content = {
+    data_raw = {
                 username: [
                     {"STT": 0,
-                    "Code": "Example",
+                    "msg": "Example",
                     "Status": "Unread",
+                    "Capacity": 0,
                     "From": "",
                     "Subject": "",
                     "Date": "",
-                    "To": "",
-                    "CC": "",
-                    "BCC": "",
+                    "To": [],
+                    "CC": [],
                     "Body": "",
                     "has_attachment": False,
-                    "Attachments": ""
+                    "Num_File": 0
                     }
                 ]
             }
-            json.dump(uidl_content, f, indent=2)
+    # Tạo file uidl.json cho chương trình nếu chưa có
+    if "uidl.json" not in list_file_folder:
+        with open('uidl.json', 'w') as f:
+            json.dump(data_raw, f, indent=2)
     else:
         with open('uidl.json', 'r') as f:
             data = json.load(f)
         if username not in data:
-            uidl_content = {
-                username: [
-                    {"STT": 0,
-                    "Code": "Example",
-                    "Status": "Unread",
-                    "From": "",
-                    "Subject": "",
-                    "Date": "",
-                    "To": "",
-                    "CC": "",
-                    "BCC": "",
-                    "Body": [],
-                    "has_attachment": False,
-                    "Attachments": []
-                    }
-                ]
-            }
-            data.update(uidl_content)
+            data.update(data_raw)
             with open('uidl.json', 'w') as f:
                 json.dump(data, f, indent=2)
                 
@@ -297,12 +315,35 @@ def folder_isExist(username):
     
     # Di chuyển đến thư mục chương trình        
     os.chdir(program_address) 
+    
+def get_server_info(user_info):
+    server_info = {'MailServer': '',
+                   'SMTP': int,
+                   'POP3': int,
+                   'AutoLoad': int
+                   }
+    with open('account.json', 'r') as f:
+        data = json.load(f)
+        for account in data["account"]:
+            if (account["Username"] == user_info["Username"]):
+                server_info["MailServer"] = account["MailServer"]
+                server_info["SMTP"] = account["SMTP"]
+                server_info["POP3"] = account["POP3"]
+                server_info["AutoLoad"] = account["AutoLoad"]
+                return server_info
 
 
 # CÁC HÀM GỬI MAIL
-def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
+def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None, attachments=None):
     try:
-        msg = MIMEMultipart()
+        if attachments:
+            msg = MIMEMultipart()
+        else:
+            msg = MIMEText(content + '\r\n', 'plain')
+            msg.replace_header('Content-Type', 'text/plain; charset=UTF-8; format=flowed')
+            # Xóa dòng MIME-Version
+            del msg['MIME-Version']
+
         # Gửi lệnh EHLO để bắt đầu
         message = 'EHLO [{}] \r\n'.format(str(user_info['MailServer'])).encode(FORMAT)
         smtp_socket.send(message)
@@ -352,8 +393,8 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
         formatted_date = now.strftime("%a, %d %b %Y %H:%M:%S %z")
         # Assign to the 'Date' field in your message
         msg['Date'] = formatted_date
-        # language, confidence = langid.classify(content)
-        # msg['Content-Language'] = language
+        ##### language, confidence = langid.classify(content)
+        ##### msg['Content-Language'] = language
         if bcc.strip() and not to.strip() and not cc.strip():
             msg['To'] = 'undisclosed-recipients: ;'
         else:
@@ -364,53 +405,30 @@ def send_mail(smtp_socket, user_info, to, subject, content, cc=None, bcc=None):
 
         msg['From'] = user_info["Username"]
         msg['Subject'] = subject
-
-        # text/plain: Chỉ định nội dung văn bản của email không chứa định dạng đặc biệt
-        body = MIMEText(content + '\r\n', 'plain')
-        body.replace_header('Content-Type', 'text/plain; charset=UTF-8; format=flowed')
-        # Xóa dòng MIME-Version
-        del body['MIME-Version']
-        msg.attach(body)
-
+        if attachments:
+            # text/plain: Chỉ định nội dung văn bản của email không chứa định dạng đặc biệt
+            body = MIMEText(content + '\r\n', 'plain')
+            body.replace_header('Content-Type', 'text/plain; charset=UTF-8; format=flowed')
+            # Xóa dòng MIME-Version
+            del body['MIME-Version']
+            msg.attach(body)
         # Thêm file đính kèm
-        choice = input("Do you want to attach files? (1. Yes, 2. No): ")
-        if choice == '1':
-            MAX_SIZE = 3 * 1024 * 1024
-            remain_size = MAX_SIZE
-            num = int(input("Number of files: "))
+        if attachments:
+            for path in attachments:
+                send_file(path, msg)
 
-            for i in range(num):
-                while True:
-                    path = input(f"Enter path for file {i + 1}: ")
-                    # Kiểm tra xem tệp có tồn tại và có thể mở được hay không
-                    try:
-                        file_size = os.path.getsize(path)
-                        with open(path, 'rb') as file:
-                            pass  # Nếu không có lỗi, tệp có thể mở được
+        # Xử lý khoảng trắng trước dấu chấm
+        smtp_socket.sendall(f'{msg.as_string()}\r\n.\r\n'.replace('\r\n\r\n.\r\n', '\r\n.\r\n').encode(FORMAT))
+        response = smtp_socket.recv(1024)
+        if not response.startswith(b'250'):
+            return
 
-                        if file_size > remain_size:
-                            print(
-                                f"Attached file exceeds remaining maximum size. Current size: {file_size} bytes, "
-                                f"Remaining maximum allowed size: {remain_size} bytes")
-                            print("Please try again.")
-                        else:
-                            send_file(path, msg)
-                            remain_size -= file_size
-                            break
-
-                    except FileNotFoundError:
-                        print(f"File not found: {path}. Please enter a valid file path.")
-                    except IOError as e:
-                        print(f"Error opening file {path}: {e}")
-                    except Exception as e:
-                        print(f"An unexpected error occurred: {e}")
-
-        smtp_socket.sendall(f'{msg.as_string()}.\r\n'.encode(FORMAT))
-        smtp_socket.recv(1024)
-
+    except Exception as e:
+        # Handle exceptions appropriately
+        print(f"An error occurred: {e}")
     finally:
-        pass
-    
+        smtp_socket.send(b'QUIT\r\n')
+
 def send_file(path, msg):
     file_name = basename(path)
     # Mở chế độ đọc nhị phân 'rb'
@@ -499,6 +517,9 @@ def receive_mail(pop3_socket, user_info):
     # Thứ tự mail _ size mail
     # .
     response = pop3_socket.recv(2048).decode()
+    
+    # Lấy dung lượng các mail
+    capacity = get_mail_capacity(response)
 
     # SEND UIDL
     pop3_socket.send(b'UIDL\r\n')
@@ -506,88 +527,136 @@ def receive_mail(pop3_socket, user_info):
     # +OK
     # Thứ tự mail _ <mã độc nhất>.msg
     # .
-    response = pop3_socket.recv(int(1e10)).decode()
+    response = pop3_socket.recv(2048).decode(FORMAT)
     
-    download_mail(pop3_socket, response, email_address)
+    # Tải mail về máy
+    download_mail(pop3_socket, response, email_address, capacity)
     
-def download_mail(pop3_socket, response, email_address):            
+    pop3_socket.send(b'QUIT\r\n')
+    pop3_socket.close()
+
+def get_mail_capacity(response):
+    # Lấy các dòng phản hồi LIST từ server
+    list_lines = response.split('\r\n')
+    capacity = {}
+    
+    # Đọc các dòng LIST trừ dòng đầu (+OK) và dòng cuối (.)
+    for i, list_line in enumerate(list_lines[1:-2], start=0):
+        capacity[i] = int(list_line[2:])
+    
+    return capacity    
+    
+def download_mail(pop3_socket, response, email_address, capacity):            
     # Lấy các dòng phản hồi UIDL từ server
     uidl_lines = response.split('\r\n')
     
     # Đọc các dòng UIDL trừ dòng đầu (+OK) và dòng cuối (.)
-    for uidl_line in uidl_lines[1:-2]:
+    for i, uidl_line in enumerate(uidl_lines[1:-2], start=0):
         with open('uidl.json', 'r') as f:
             data = json.load(f)
             check = False
             for email_info in data[str(email_address)]:
-                if str(email_info["Code"]) == str(uidl_line[2:]):
+                if str(email_info["msg"]) == str(uidl_line[2:]):
                     check = True
                     break
             if check == False:
                 pop3_socket.send('RETR {}\r\n'.format(uidl_line[0]).encode())  
-                response = pop3_socket.recv(int(1e10)).decode()
+                response = pop3_socket.recv(capacity[i]).decode()
                 retr_lines = response.split('\r\n')
-                email_data = parse_email(retr_lines, uidl_line)
-                save_mail_filtered(email_data, response)
+                email_data = parse_email(retr_lines, uidl_line, capacity[i])
+                save_mail_filtered(email_address, email_data, retr_lines[1:-2])
                 with open('uidl.json', 'r') as f:
                     data = json.load(f)
                     data[str(email_address)].append(email_data)
                 with open('uidl.json', 'w') as f:
                     json.dump(data, f, indent=2)
 
-def parse_email(retr_lines, uidl_line):
-    email = {
+def parse_email(retr_lines, uidl_line, capacity):
+    email_info = {
         "STT": int(uidl_line[0]),
-        "Code": str(uidl_line[2:]),
+        "msg": str(uidl_line[2:]),
         "Status": "Unread",
+        "Capacity": capacity,
         "From": "",
         "Subject": "",
         "Date": "",
-        "To": "",
-        "CC": "",
-        "BCC": "",
+        "To": [],
+        "CC": [],
         "Body": "",
         "has_attachment": False,
-        "Attachments": ""
+        "Num_File": 0
     }
     
     count_emptyLine = 0
+    count_file = 0
 
     for retr_line in retr_lines:        
         if retr_line.startswith("From"):
-            email["From"] = retr_line.split(":")[1].strip()
-        
+            email_info["From"] = retr_line.split(":")[1].strip()
         elif retr_line.startswith("Subject"):
-            email["Subject"] = retr_line.split(":")[1].strip()
+            email_info["Subject"] = retr_line.split(":")[1].strip()
         elif retr_line.startswith("Date"):
-            email["Date"] = retr_line.split(":")[1].strip()
+            email_info["Date"] = retr_line.split(":")[1].strip()
         elif retr_line.startswith("To"):
-            email["To"] = retr_line.split(":")[1].strip()
-        elif retr_line.startswith("CC"):
-            email["CC"] = retr_line.split(":")[1].strip()
-        elif retr_line.startswith("BCC"):
-            email["BCC"] = retr_line.split(":")[1].strip()
+            tos = retr_line.split(":")[1].strip()
+            for to in tos.split(','):
+                email_info["To"].append(to.strip())
+        elif retr_line.startswith("Cc"):
+            ccs = retr_line.split(":")[1].strip()
+            for cc in ccs.split(','):
+                email_info["CC"].append(cc.strip())
             
         # Kiểm tra mail có file đính kèm hay không
         elif retr_line.startswith("Content-Disposition"):
             disposition = retr_line.split(":")[1].strip()
             if "attachment" in disposition:
-                email["has_attachment"] = True
+                count_file += 1
+                email_info["has_attachment"] = True
                 
         # Kiểm tra mail có nội dung hay không
         elif retr_line == '':
             count_emptyLine += 1
         if count_emptyLine == 2 and retr_line != '':
-            email["Body"] += retr_line
+            email_info["Body"] += retr_line
         # elif count_emptyLine == 4 and retr_line != '':
-        #     email["Attachments"] += retr_line                
+        #     email_info["Attachments"] += retr_line                
     
-    return email
+    email_info["Num_File"] = count_file
+    return email_info
 
-def save_mail_filtered(email_data, raw_email_data):
-    pass
+def save_mail_filtered(email_address, email_data, raw_email_data):
+    # Lấy đường dẫn của chương trình
+    program_address = os.getcwd()
+    # Lấy UserName là email_address (email_address được trích từ tài khoản khi nhập vào)
+    username = email_address
+    # Lọc folder tương ứng với mail
+    folder = folder_sort(str(email_data))
+    # Tên file sẽ là mã uidl của mail
+    file_name = email_data['msg']
 
-def watch_mail():#pop3_socket, response):
+    file_path = os.path.join(program_address, username, folder, file_name)
+    with open(file_path, 'w') as f:
+        for line in raw_email_data:
+            f.write(line + '\n')
+            
+def folder_sort(email_data):
+    # Filters lưu trữ nội dung của file filter.json
+    with open('filter.json', 'r') as f:
+        filter_content = json.load(f)
+
+    # Sau đó xét lần lượt các item trong data
+    for filter_item in filter_content["filters"]:
+        # Xét từng keyword trong item
+        for keyword in filter_item["keywords"]:
+            # nếu có keyword đó ở trong nội dung của email thì sẽ return lại tên folder tương ứng
+            # có thể làm nhiều if để so sánh các cái trường với nhau
+            if keyword in str(email_data):
+                return filter_item["folder"]
+    return "Inbox"
+
+
+# CÁC HÀM XEM MAIL
+def watch_mail_raw():#pop3_socket, response):
     while True:
         print('------------------------------------------------------------------')
         print("This is folder list in your mailbox: ")
@@ -771,10 +840,139 @@ def watch_mail():#pop3_socket, response):
                         continue
                  
         else:
-            print("Invalid choice! Please try again!")
             print('------------------------------------------------------------------')
+            print("Invalid choice! Please try again!")
             continue
 
+def watch_mail(email_address):#pop3_socket, response):
+    # Lấy đường dẫn chương trình
+    program_address = os.getcwd()
+    user_path = os.path.join(program_address, email_address)
+    
+    while True:
+        # List ra các folder phân loại mail
+        print('------------------------------------------------------------------')
+        print("This is folder list in your mailbox: ")
+        folders = ["Inbox", "Spam", "Project", "Important", "Work"]
+        for i, folder in enumerate(folders, start=1):
+            print(f"{i}. {folder}")
+        # Chọn xem folder nào   
+        folder_choice = input("Enter folder number to view emails (or press Enter to exit): ")
+
+        # EXIT
+        if folder_choice == '':
+            return    
+        # List ra các email trong folder đó
+        elif folder_choice.isdigit() and 1 <= int(folder_choice) <= len(folders):
+            # Lấy tên folder được chọn
+            selected_folder = folders[int(folder_choice) - 1]
+            # Lấy đường dẫn folder được chọn
+            folder_path = os.path.join(user_path, selected_folder)
+            while True:
+                # Lấy các email trong folder được chọn
+                selected_emails = os.listdir(folder_path)
+
+                # List ra các email trong folder được chọn
+                print('------------------------------------------------------------------')
+                print(f"This is mail list in your {selected_folder} folder: ")
+                
+                if selected_emails is None:
+                    print("---No mail in this folder---")
+                    break
+                else:
+                    # List từng email
+                    for i, email in enumerate(selected_emails, start=1):
+                        email_data = getEmail_Data(email, email_address)
+                        email_from = email_data["From"]
+                        email_subject = email_data["Subject"]
+                        email_status = email_data["Status"]
+                        if email_status == "Unread":
+                            print(f"{i}. ({email_status}) <{email_from}>, <{email_subject}>")
+                        else:
+                            print(f"{i}. <{email_from}>, <{email_subject}>")
+            
+                    print('------------------------------------------------------------------')
+                    print("Enter 0 to back or press Enter to exit.")
+                    email_choice = input("Enter email number to view details: ")
+
+                    # EXIT
+                    if email_choice == '':
+                        return
+                    # BACK
+                    elif email_choice == '0':
+                        break
+                    elif email_choice.isdigit() and 1 <= int(email_choice):
+                        msg = selected_emails[int(email_choice)-1]
+                        file_path = os.path.join(folder_path, msg)
+                        
+                        #Lấy Body và attachment (nếu có) của mail
+                        data  = getEmailBody_Attachments(file_path) #email_datas["has_attachment"][int(input) - 1])
+
+                        with open('uidl.json', 'r') as f:
+                            data2 = json.load(f)
+                        for email_data in data2[email_address]:
+                            if msg == email_data["msg"]:
+                                print("From:", email_data["From"])
+                                print("To: ", email_data["To"])
+                                print("CC: ", email_data["CC"])
+                                print("Subject:", email_data["Subject"])
+                                print("\n", data["Body"])
+                        # if email_datas["has_attachment"] == True:
+                        #     att_choice = input("There an attachment, do you want to download?")
+                        # Cập nhật lại status của mail trong file uidl.json
+                                changeMailStatus(email_address, email_data["msg"])
+                    else:
+                        print('------------------------------------------------------------------')
+                        print("Invalid choice! Please try again!")
+                        continue
+        else:
+            print('------------------------------------------------------------------')
+            print("Invalid choice! Please try again!")
+            continue
+
+def getEmail_Data(msgfileName, email_address):
+    program_path = os.getcwd()
+
+    with open ("uidl.json", 'r') as f:
+        data = json.load(f)
+    email_datas = data[email_address]
+
+    for email_data in email_datas:
+        if (str(msgfileName) == email_data["msg"]):
+            return email_data               
+      
+def changeMailStatus(email_address, msg):
+    with open ('uidl.json', 'r') as file:
+        data = json.load(file)
+
+    for info in data[email_address]:
+        if info["msg"] ==  msg:
+            info["Status"] = ''
+            break
+    
+    with open('uidl.json', 'w') as file2:
+        json.dump(data, file2, indent=2)
+ 
+def getEmailBody_Attachments(file_path):
+    data = {
+        "Body": '',
+        "Attachments": []
+    }
+
+    with open(file_path, 'r', encoding='latin1') as file:
+        file_content = file.read()
+        
+        # Đếm dòng trống để xác định phần body và attachments
+        count_emptyLine = 0
+        for line in file_content.split('\n'):
+            if line == '':
+                count_emptyLine += 1
+            if count_emptyLine == 2 and line != '':
+                data["Body"] += line
+    return data
+
+def printEmail(email):
+    pass
   
 ### ------------------------------------------------------x---    
 def load_filters():
@@ -790,14 +988,6 @@ def load_filters():
         data = json.load(file)
     return data
 
-def folder_sort(mail_data):
-    filters = filter_content
-    for email_filter in filters:
-        for keyword in email_filter["keywords"]:
-            if keyword in mail_data:
-                return email_filter["folder"]
-    return "Inbox"
-
 def save_email(folder, email, username):
     program_address = os.getcwd()
 
@@ -809,12 +999,87 @@ def save_email(folder, email, username):
         file.write(f"Subject: {email['subject']}\n")
         file.write(f"Body:\n{email['body']}\n")
 ### ------------------------------------------------------x---
-            
+ 
 
 # HÀM AUTO LOAD MAIL SAU THỜI GIAN NHẤT ĐINH CHO TRƯỚC
-def auto_load_mail():
-    pass    
+def auto_load_mail(pop3_socket,user_info, server_info):
+    while not exit_flag:
+        receive_mail(pop3_socket, user_info)
+        time.sleep(server_info["AutoLoad"])
 
 
 if __name__ == "__main__":
     main()
+    
+def parse_email(data, spliter):
+      lines = data.split(spliter)
+      boundary = ""
+      message_id = ""
+      date = ""
+      tos = []
+      ccs = []
+      _from = ""
+      subject = ""
+      attachment_arr = []
+      content = ""
+      start_idx_attach = -1
+
+      for i in range(0, len(lines)):
+      # Lấy boundary
+        if (lines[i].find("Content-Type: multipart/mixed") != -1):
+          boundary = lines[0][lines[0].find('"') + 1:len(lines[0]) - 1]
+          
+      # Lấy thông tin
+        elif lines[i].startswith("Message-ID"): message_id = lines[i].split(": ", 1)[1]
+        elif lines[i].startswith("Date"): date = lines[i].split(": ", 1)[1]
+        # Lấy nhiều to
+        elif lines[i].startswith("To"): 
+          to = lines[i].split(": ", 1)[1]
+          tos = to.split(',')
+        # Lấy nhiều cc
+        elif lines[i].startswith("Cc"): 
+          cc = lines[i].split(": ", 1)[1]
+          ccs = cc.split(',')
+        elif lines[i].startswith("From"): _from = lines[i].split(": ", 1)[1]
+        # ??? Lấy subject
+        elif lines[i].startswith("Subject"): 
+          subject = (lines[i].split(": ", 1)[1]).strip()
+          subject = base64.b64decode(subject).decode("utf8")
+        
+        # ??? Lấy content
+        if subject != '' and lines[i] == '':
+          start_idx_attach = i
+          break
+      
+      
+      if (boundary == ""):
+        for i in range(start_idx_attach, len(lines)):
+          content = content + lines[i] + '\n'
+        content = content[1:content.rfind('.') - 2]
+        content = base64.b64decode(content).decode("utf8")
+        return {"ID": message_id, "Date": date, "To": tos, "Cc": ccs, "From": _from, "Subject": subject, "Content": content}
+
+      else:
+        for j in range(start_idx_attach, len(lines), 1):
+          if lines[j].startswith("Content-Transfer-Encoding: 7bit"):
+            for k in range(j + 2, len(lines)):
+              if boundary in lines[k]:
+                break
+              content = content + lines[k]
+              content = base64.b64decode(content).decode("utf8")
+          elif lines[j].startswith("Content-Disposition: attachment"):
+            attachment_data = ""
+            file_name = ""
+            if (lines[j].find("filename") != -1):
+              file_name = lines[j][lines[j].find('"') + 1:len(lines[j]) - 1]
+            else:
+              file_name = lines[j + 1][lines[j + 1].find('"') + 1:len(lines[j + 1])- 1]
+            file_name = base64.b64decode(file_name).decode("utf8")
+            for k in range(j + 2, len(lines)):
+              if boundary in lines[k]:
+                break
+              attachment_data = attachment_data + lines[k]
+            attachment_data.strip()
+            attachment = {"name": file_name, "data": attachment_data}
+            attachment_arr.append(attachment)
+        return {"ID": message_id, "Date": date, "To": tos, "Cc": ccs, "From": _from, "Subject": subject, "Content": content, "Attachment": attachment_arr}
