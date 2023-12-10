@@ -21,7 +21,14 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AutoloadMail.py" />
+    <Compile Include="FilterMail.py" />
+    <Compile Include="Login.py" />
     <Compile Include="MailClient.py" />
+    <Compile Include="Other.py" />
+    <Compile Include="ReceiveMail.py" />
+    <Compile Include="SendMail.py" />
+    <Compile Include="ViewMail.py" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
