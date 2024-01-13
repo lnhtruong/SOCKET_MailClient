@@ -1,13 +1,12 @@
 ﻿# Thư viện tạo luồng chạy song song
 import threading
-
 import Other
 import Login
 import SendMail
 import ViewMail
 
-from AutoloadMail import auto_load_mail
-from AutoloadMail import exit_flag
+from AutoloadMail import auto_load_mail, set_exit_flag
+# from AutoloadMail import exit_flag
 
 '''QUY TẮC ĐẶT TÊN
 - Tên biến: chữ thường, cách nhau bởi dấu gạch dưới (_)
@@ -126,12 +125,10 @@ from AutoloadMail import exit_flag
 - keyword: từ khóa
 - last_four_char: 4 ký tự cuối cùng (định dạng file)
 '''
-'''DANH SÁCH CÁC HÀM
-
-'''
 
 # HÀM MAIN
 def main(user_info, server_info):
+    global exit_flag
     # Lấy địa chỉ email từ username
     email_address = Other.extract_email_address(user_info["Username"])
     
@@ -153,8 +150,7 @@ def main(user_info, server_info):
 
         # THOÁT
         elif menu_choice == '3':
-            global exit_flag
-            exit_flag = True
+            set_exit_flag()
             print("Exiting program...")
             break
 
@@ -170,10 +166,13 @@ if __name__ == "__main__":
         email_address = Other.extract_email_address(user_info["Username"])
         Other.folder_isExist(email_address)
         server_info = Other.get_server_info(user_info)
+        
         main_thread = threading.Thread(target=main,args=(user_info, server_info))
         auto_thread = threading.Thread(target=auto_load_mail,args=(user_info, server_info))
+        
         main_thread.start()
         auto_thread.start()
+        
         main_thread.join()
     else:
         print("Login failed!")

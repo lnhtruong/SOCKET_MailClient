@@ -6,7 +6,7 @@ def save_email_filtered(email_address, email_info, raw_email_data):
     program_path = os.getcwd()
     # Lọc folder tương ứng với mail
     folder = folder_sort(email_info)
-    # Cấu hình lại file
+    # Cấu hình lại file, gộp các dòng lại thành 1 chuỗi
     msg = '\n'.join(raw_email_data)
 
     # Folder chương trình/Folder người dùng/Folder lọc/File mail
@@ -24,8 +24,7 @@ def folder_sort(email_info):
         # Xét từng keyword trong item
         for keyword in filter_item["keywords"]:
             # Xét từng thông tin trong email
-            for info in email_info:
                 # Nếu keyword nào trong item trùng với keyword nào trong email thì trả về folder
-                if keyword in info:
-                    return filter_item["folder"]
+            if keyword in str(email_info):
+                return filter_item["folder"]
     return "Inbox"

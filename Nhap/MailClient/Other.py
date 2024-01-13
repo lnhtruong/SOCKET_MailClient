@@ -124,3 +124,86 @@ def get_email_info(msg_name, email_address):
     for email_info in email_infos:
         if (str(msg_name) == email_info["UniqueID"]):
             return email_info
+
+def get_email_size(list_response):
+    # Lấy các dòng phản hồi LIST từ server
+    list_lines = list_response.split('\r\n')
+    email_sizes = {}
+    
+    # Đọc các dòng LIST trừ dòng đầu (+OK) và dòng cuối (.)
+    for i, list_line in enumerate(list_lines[1:-2], start=0):
+        tmp = list_line.split(" ")[1].strip()
+        email_sizes[i] = int(tmp)
+    
+    return email_sizes  
+
+def parse_email(retr_lines, uidl_line, email_size):
+    tmp1 = uidl_line.split(" ")[0].strip()
+    tmp2 = uidl_line.split(" ")[1].strip()
+    email_info = {
+        "STT": int(tmp1),
+        "UniqueID": str(tmp2),
+        "Status": "Unread",
+        "Size": email_size,
+        "From": "",
+        "Subject": "",
+        "Date": "",
+        "To": [],
+        "CC": [],
+        "Body": "",
+        "has_attachment": False,
+        "Num_Attached": 0
+    }
+    
+    # Lấy các dữ liệu cơ bản
+    for retr_line in retr_lines:
+        if retr_line.startswith("From"):
+            email_info["From"] = retr_line.split(":")[1].strip()
+        elif retr_line.startswith("Subject"):
+            email_info["Subject"] = retr_line.split(":")[1].strip()
+        elif retr_line.startswith("Date"):
+            email_info["Date"] = retr_line.split(":")[1].strip()
+        elif retr_line.startswith("To"):
+            to_addresses = retr_line.split(":")[1].strip()
+            if (',' in to_addresses):
+                for to_address in to_addresses.split(','):
+                    email_info["To"].append(to_address.strip())
+            else:
+                email_info["To"].append(to_addresses)
+        elif retr_line.startswith("Cc"):
+            cc_addresses = retr_line.split(":")[1].strip()
+            if (',' in cc_addresses):
+                for cc_address in cc_addresses.split(','):
+                    email_info["CC"].append(cc_address.strip())
+            else:
+                email_info["CC"].append(cc_addresses)
+   
+    # Lấy nội dung mail            
+    if "multipart" in retr_lines[0]:
+        count_empty_line = 0
+        count_file = 0
+        for retr_line in retr_lines:
+            # Kiểm tra mail có file đính kèm hay không
+            if retr_line.startswith("Content-Disposition"):
+                disposition = retr_line.split(":")[1].strip()
+                if "attachment" in disposition:
+                    count_file += 1
+                    email_info["has_attachment"] = True
+                
+            # Kiểm tra mail có nội dung hay không
+            elif retr_line == '':
+                count_empty_line += 1
+            if count_empty_line == 2 and retr_line != '':
+                email_info["Body"] += retr_line
+        
+        email_info["Num_Attached"] = count_file
+        return email_info
+
+    else:
+        count_empty_line = 0
+        for retr_line in retr_lines:
+            if retr_line == '':
+                count_empty_line += 1
+            if count_empty_line == 1 and retr_line != '':
+                email_info["Body"] += retr_line
+        return email_info

@@ -1,0 +1,33 @@
+{
+  "filters": [
+    {
+      "keywords": [
+        "virus",
+        "hack",
+        "crack"
+      ],
+      "folder": "Spam"
+    },
+    {
+      "keywords": [
+        "urgent",
+        "ASAP"
+      ],
+      "folder": "Important"
+    },
+    {
+      "keywords": [
+        "Tuan01@testing.com",
+        "Truong02@testing.com"
+      ],
+      "folder": "Project"
+    },
+    {
+      "keywords": [
+        "report",
+        "meeting"
+      ],
+      "folder": "Work"
+    }
+  ]
+}

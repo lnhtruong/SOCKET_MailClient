@@ -14,7 +14,7 @@ def login():
                  'AutoLoad': 10
                  }
       
-    # Kiểm tra tài khoảng người dùng
+    # Kiểm tra tài khoản người dùng
     check_account(user_info)
     
     # Trả về thông tin người dùng sau khi đăng nhập
